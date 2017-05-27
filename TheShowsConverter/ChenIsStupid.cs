@@ -1,6 +1,5 @@
 ﻿using NReco.VideoConverter;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 
@@ -17,11 +16,10 @@ namespace TheShowsConverter
 
             WindowState = FormWindowState.Minimized;
             ShowInTaskbar = false;
+            Hide();
 
             _cid = Guid.NewGuid().ToString();
-
-            Debugger.Launch();
-
+            
             using (StreamWriter w = File.AppendText(LOG_PATH))
             {
                 try
@@ -35,6 +33,10 @@ namespace TheShowsConverter
                 catch (Exception ex)
                 {
                     Log(w, $"FAILURE! ex: {ex}");
+                }
+                finally
+                {
+                    Close();
                 }
             }
         }
@@ -58,7 +60,7 @@ namespace TheShowsConverter
 
         private void ConvertDirectory(StreamWriter w, string path)
         {
-            var files = Directory.GetFiles(path, "*.mkv", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(path, "*.mkv,*.avi", SearchOption.AllDirectories);
 
             var converter = new FFMpegConverter();
 
@@ -76,6 +78,8 @@ namespace TheShowsConverter
                 var mp4Path = Path.ChangeExtension(mkvPath, "mp4");
 
                 converter.ConvertMedia(mkvPath, mp4Path, Format.mp4);
+
+                //File.Delete(mkvPath);
             }
             catch (Exception ex)
             {
