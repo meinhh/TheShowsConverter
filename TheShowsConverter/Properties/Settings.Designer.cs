@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace TheShowConverter.Properties
+namespace TheShowsConverter.Properties
 {
 
 
