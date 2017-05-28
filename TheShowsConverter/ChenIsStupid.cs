@@ -1,14 +1,15 @@
 ﻿using NReco.VideoConverter;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace TheShowsConverter
 {
     public partial class ChenIsStupid : Form
     {
-        private const string LOG_PATH = "c:\\logs\\theShowsConverter.log";
-        private readonly string _cid;
+        private static readonly IEnumerable<string> ConvertFromExtensionTypes = new[] {"*.mkv", "*.avi"};
 
         public ChenIsStupid()
         {
@@ -17,22 +18,20 @@ namespace TheShowsConverter
             WindowState = FormWindowState.Minimized;
             ShowInTaskbar = false;
             Hide();
-
-            _cid = Guid.NewGuid().ToString();
             
-            using (StreamWriter w = File.AppendText(LOG_PATH))
+            using (var logger = File.AppendText($"c:\\logs\\IdanMorHamor\\{DateTime.Now:YYYY-MM-DDHH:mm:SS.ZZZ}.log"))
             {
                 try
                 {
-                    Log(w, "Program started");
+                    Log(logger, "Program started");
 
-                    var directory = GetDirectory(w);
+                    var files = GetFiles(logger);
 
-                    ConvertDirectory(w, directory);
+                    ConvertFiles(logger, files);
                 }
                 catch (Exception ex)
                 {
-                    Log(w, $"FAILURE! ex: {ex}");
+                    Log(logger, $"FAILURE! ex: {ex}");
                 }
                 finally
                 {
@@ -41,16 +40,26 @@ namespace TheShowsConverter
             }
         }
 
-        private string GetDirectory(StreamWriter w)
+        private IEnumerable<string> GetFiles(TextWriter logger)
         {
             try
             {
                 var args = Environment.GetCommandLineArgs();
-                var directory = args[1];
+                var kind = args[1];
+                var fileName = args[2];
+                var directoryName = args[3];
 
-                Log(w, $"Params recived. directory: {directory}");
+                if (kind == "single")
+                {
+                    var filePath = Path.Combine(directoryName, fileName);
+                    Log(logger, $"Single file selected. {filePath}");
+                    return new[] { filePath };
+                }
 
-                return directory;
+                var files = ConvertFromExtensionTypes.SelectMany(f => Directory.GetFiles(directoryName, f,
+                    SearchOption.AllDirectories));
+                Log(logger, $"Multi file selected. directory: {directoryName}. files: {string.Join(", ", files)}");
+                return files;
             }
             catch (Exception ex)
             {
@@ -58,38 +67,35 @@ namespace TheShowsConverter
             }
         }
 
-        private void ConvertDirectory(StreamWriter w, string path)
+        private void ConvertFiles(TextWriter logger, IEnumerable<string> files)
         {
-            var files = Directory.GetFiles(path, "*.mkv,*.avi", SearchOption.AllDirectories);
-
             var converter = new FFMpegConverter();
 
-            foreach (var fileName in files)
+            foreach (var filePath in files)
             {
-                ConvertFile(w, converter, path, fileName);
+                ConvertFile(logger, converter, filePath);
             }
         }
 
-        private void ConvertFile(StreamWriter w, FFMpegConverter converter, string path, string fileName)
+        private void ConvertFile(TextWriter logger, FFMpegConverter converter, string filePath)
         {
             try
             {
-                var mkvPath = Path.Combine(path, fileName);
-                var mp4Path = Path.ChangeExtension(mkvPath, "mp4");
+                var mp4Path = Path.ChangeExtension(filePath, "mp4");
 
-                converter.ConvertMedia(mkvPath, mp4Path, Format.mp4);
+                converter.ConvertMedia(filePath, mp4Path, Format.mp4);
 
                 //File.Delete(mkvPath);
             }
             catch (Exception ex)
             {
-                Log(w, $"FAILURE! exception occured while converting the file {fileName}. ex: {ex}");
+                Log(logger, $"FAILURE! exception occured while converting the file {filePath}. ex: {ex}");
             }
         }
 
-        private void Log(StreamWriter w, string message)
+        private void Log(TextWriter logger, string message)
         {
-            w.WriteLine($"{_cid} | {DateTime.Now.ToString()} | {message}");
+            logger.WriteLine($"{DateTime.Now} | {message}");
         }
     }
 }
