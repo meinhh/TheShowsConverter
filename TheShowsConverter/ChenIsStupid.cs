@@ -18,8 +18,11 @@ namespace TheShowsConverter
             WindowState = FormWindowState.Minimized;
             ShowInTaskbar = false;
             Hide();
-            
-            using (var logger = File.AppendText($"c:\\logs\\IdanMorHamor\\{DateTime.Now:YYYY-MM-DDHH:mm:SS.ZZZ}.log"))
+            string logFolder = @"c:\logs\IdanMorHamor\";
+            var path = Path.Combine(logFolder, $"{DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss")}.log");
+
+            Directory.CreateDirectory(logFolder); 
+            using (var logger = File.AppendText(path))
             {
                 try
                 {
@@ -45,9 +48,10 @@ namespace TheShowsConverter
             try
             {
                 var args = Environment.GetCommandLineArgs();
+                Log(logger,$"args are : {String.Join(",",args)}");
                 var kind = args[1];
-                var fileName = args[2];
-                var directoryName = args[3];
+                var fileName = args[3];
+                var directoryName = args[2];
 
                 if (kind == "single")
                 {
@@ -70,7 +74,8 @@ namespace TheShowsConverter
         private void ConvertFiles(TextWriter logger, IEnumerable<string> files)
         {
             var converter = new FFMpegConverter();
-
+            converter.ConvertProgress += (o, p) => { Log(logger, $"Processed {p.Processed} of {p.TotalDuration}"); };
+            converter.LogReceived += (o, p) => { Log(logger, $"ffmpeg: {p.Data}"); };
             foreach (var filePath in files)
             {
                 ConvertFile(logger, converter, filePath);
