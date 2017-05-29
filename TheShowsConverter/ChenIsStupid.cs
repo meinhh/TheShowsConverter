@@ -78,8 +78,14 @@ namespace TheShowsConverter
             converter.LogReceived += (o, p) => { Log(logger, $"ffmpeg: {p.Data}"); };
             foreach (var filePath in files)
             {
+                Log(logger, $"Coverting {filePath}");
+
                 ConvertFile(logger, converter, filePath);
+
+                Log(logger, $"Coverting {filePath} done");
             }
+
+            Log(logger, "All files have been converted");
         }
 
         private void ConvertFile(TextWriter logger, FFMpegConverter converter, string filePath)
